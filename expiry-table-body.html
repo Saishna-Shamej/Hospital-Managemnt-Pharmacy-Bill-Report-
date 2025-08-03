@@ -1,0 +1,16 @@
+{% for med in medicines %}
+<tr>
+    <td>{{ med.medicine_name }}</td>
+    <td>{{ med.batch_no }}</td>
+    <td>{{ med.medicine.medicine_company.company_name }}</td>
+    <td>{{ med.medicine.medicine_category.medicine_category }}</td>
+    <td>{{ med.medicine.medicine_group.medicine_group }}</td>
+    <td>{{ med.medicine_purchase.supplier_name }}</td>
+    <td>{{ med.expiry_date }}</td>
+    <td>{{ med.quantity }}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="8" class="text-center text-muted">No records found for selected filters.</td>
+</tr>
+{% endfor %}

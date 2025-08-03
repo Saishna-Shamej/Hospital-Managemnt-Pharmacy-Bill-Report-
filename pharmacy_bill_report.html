@@ -1,0 +1,1457 @@
+{% extends base_template %}
+
+{% block content %}
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+</head>
+<style>
+    body, html {
+        overflow-x: hidden;
+    }
+
+    .container{
+        display: flex;
+        flex-direction: column; 
+        border: 1px solid rgb(234, 231, 231);
+        background-color: white;
+        padding: 8px;
+        
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1), 
+        0 -4px 8px rgba(0, 0, 0, 0.1); 
+        
+    }
+
+    .header{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 5px;
+        background-color: white;
+        margin-bottom: 5px;
+        
+    }
+
+    .header h1 {
+        margin: 0;
+        font-size: 1.2em;
+        color: #333;
+        font-weight: bold;
+
+    }
+
+    .report-buttons {
+        display: flex;        
+        gap: 380px;  /* Keep this for large screens */
+        padding: 5px; 
+        justify-content: flex-start;
+        margin-bottom: 3px;
+        flex-wrap: wrap;  /* ✅ Allow wrapping on small screens */
+    }
+
+    .report-buttons button {
+        background: none;      
+        border: none;           
+        padding: 7px 12px 7px 12px;
+        font-size: 1em;     
+        font-weight: bold;    
+        color: #333;           
+        cursor: pointer;       
+        display: flex;          
+        align-items: center; 
+        border-radius: 5px;  
+    }
+
+    .report-buttons button:focus {
+        outline: none; 
+        background-color: #118f72 !important; 
+        color: rgb(249, 246, 246); 
+    }
+
+    .report-buttons button:focus i {
+        color: #ffffff; 
+        background-color: #118f72 !important;
+    }
+
+    .report-buttons button i {
+        font-size: 13px;        
+        color: #333;            
+    }
+
+    .report-buttons button:active {
+        background-color: #118f72 !important; 
+        color: rgb(249, 246, 246); 
+    }
+
+    .report-buttons .active-btn {
+        background-color: #118f72 !important;
+        color: rgb(249, 246, 246);
+    }
+
+    .report-buttons .active-btn i {
+        color: #ffffff;
+    }
+
+    /* ✅ Mobile-specific override */
+    @media (max-width: 576px) {
+        .report-buttons {
+            gap: 10px; /* override large gap to allow wrapping */
+            justify-content: center; /* center buttons on small screens */
+        }
+
+        .report-buttons button {
+            width: 100%;
+            max-width: 320px;
+            justify-content: center;
+        }
+    }
+    .box{
+        margin-top: 10px;
+        border: 1px solid #ddd;
+        padding: 5px;
+        border-radius: 4px;
+    }
+
+    @media screen and (max-width: 425px) {
+        .box{
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        }
+    }
+
+    .table-responsive {
+        width: 100%;
+        overflow-x: fixed;
+    }
+    #pharmacybillReportTable {
+        width: 100%;
+        min-width: 1000px;
+        border-collapse: collapse;
+    }
+
+    #pharmacybillReportTable thead th {
+        background-color: #0f5f4d;
+        justify-content:baseline;
+        color: white;
+        font-weight: bold;
+        font-size: 11px !important;
+        line-height: 1.2;
+        vertical-align:middle;
+        text-align: center;
+    }
+    /* Pharmacy Bill Table Enhancements */
+    #pharmacybillReportTable th,
+    #pharmacybillReportTable td {
+        padding: 10px 8px;
+        font-size: 11px !important;
+          
+        text-align: center;
+        vertical-align: middle;
+       
+    }
+
+    /* Align icon and label horizontally and center them */
+    .th-label-with-icon {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        font-weight: bold;
+        font-size: 11px !important;
+        color: white;
+    }
+
+    /* Adjust icon */
+    .th-label-with-icon i.fa {
+        font-size: 11px !important;
+        color: white;
+    }
+
+    
+    
+    /* Totals Row Style */
+    #pharmacybillReportTable tfoot {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        border-top: 2px solid #ccc;
+    }
+
+    #pharmacybillReportTable tfoot td {
+        padding: 6px 10px;
+        font-size: 12px !important;
+        color: #035122;
+    }
+
+    #pharmacybillReportTable thead th i {
+        margin-left: 4px;
+        font-size: 11px;
+        text-align: center;
+    }
+    #pharmacybillReportTable th i.fa {
+        margin-left: 8px;
+        font-size: 11px !important; 
+        color: white;
+        text-align: center;
+    }
+
+    #pharmacybillReportTable th:nth-child(11),
+    #pharmacybillReportTable td:nth-child(11) {
+        min-width: 120px;
+        width: 120px;
+    }
+    #pharmacybillReportTable th:nth-child(7), 
+    
+    #pharmacybillReportTable th:nth-child(10), 
+    #pharmacybillReportTable th:nth-child(9), 
+    #pharmacybillReportTable th:nth-child(8) { 
+        min-width: 100px;
+        max-width: 110px;
+        font-size: 11px !important;    
+        text-align:center;
+    }
+    
+    .bill {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Section title */
+    .bill-report h1 {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #035122;
+        margin-bottom: 20px;
+    }
+
+    /* Form layout */
+    .form-row-main {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 30px;
+        margin-bottom: 1rem;
+        
+    }
+
+    /* Container for all filter items */
+    .form-select-tag {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    /* Each item: 3 per row */
+    .form-item {
+        flex: 1;  
+        min-width: 300px;
+        max-width: 350px;
+    }
+
+    #bill-daterange {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        min-width: 300px;
+        width: 100%;
+    }
+    /* Labels */
+    .form-item label {
+        font-weight: 500;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+    @media (max-width: 768px) {
+        .form-row-main {
+            flex-direction: column;
+        }
+    }
+
+    /* Inputs & Selects */
+    .form-item select,
+    .form-item input {
+        width: 100%;
+        max-width: 100%;
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+    
+
+    @media (max-width: 576px) {
+        .form-item label {
+            font-size: 12px;
+        }
+
+        .form-item .form-select,
+        .form-item .select2-container--default .select2-selection--single {
+            height: 38px;
+            font-size: 13px;
+        }
+        .form-item {
+            flex: 1 1 100%;
+            min-width: 0; 
+        }
+    }
+
+    @media (max-width: 767px) {
+        .form-item input[type="date"] {
+            width: 100%;         /* Take full container width */
+            max-width: 100%;     /* Prevent overflow */
+            box-sizing: border-box;
+        }
+
+        .form-item {
+            flex: 0 0 100%;
+            width: 90%;
+            max-width: 90%;
+        }
+
+        #bill-daterange {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        #bill-daterange label {
+            font-size: 13px;
+            width: 100%;
+            word-break: break-word;
+        }
+    }
+
+
+
+    @media (max-width: 768px) {
+        .form-row-main,
+        .form-select-tag,
+        #daterange {
+            flex-direction: column;
+        }
+
+        .form-item {
+            flex: 1 1 100%;
+        }
+
+        .bill-report h1 {
+            font-size: 1.2rem;
+        }
+    }
+    .search-bar input {
+        padding: 6px 12px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+    }
+    #bill-source-search {
+        max-width: 700px; 
+    }
+    #expiry-source-search {
+        max-width: 700px; 
+    }
+
+    @media (max-width: 767px) {
+        .search-row {
+            display: flex;
+            align-items: center;  
+            justify-content: space-between;  
+            margin-top: 5px;
+        }
+
+        .search-bar {
+            width: 2px;  
+            margin-bottom: 0; 
+        }
+        #source-search {
+            max-width: 55%;
+        }
+    }
+    .d-flex.justify-content-end {
+        padding-right: 10px;
+    }
+
+    #expirymedicineReportTable thead th {
+        background-color: #0f5f4d !important; /* Dark green */
+        color: white;
+        font-size: 1rem;
+        cursor: pointer;
+        text-align: center;
+        vertical-align: middle;
+    }
+    /* Expiry Medicine Table Enhancements */
+    #expirymedicineReportTable th,
+    #expirymedicineReportTable td {
+        vertical-align: middle;
+        text-align: center;
+        font-size: 0.9rem;
+    }
+
+    tfoot#pharmacyBillFooter td {
+        color: black !important;
+    }
+     /* Increase Select2 height */
+    .select2-container .select2-selection--single {
+        height: 39px !important; /* Adjust height as needed */
+        padding: 6px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem; /* Matches Bootstrap 5 border radius */
+        font-size: 1rem;
+        color: #000;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 32px; /* vertically center text */
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 45px !important;
+    }
+</style>
+
+<body>
+    <div style="padding: 10px;">
+        <div class="container mt-3">
+            <div class="header">
+                <h1>Pharmacy Bill Report</h1>
+            </div>
+
+            <div class="report-buttons">
+                <button class="bill" id="billReportBtn"><i class="fas fa-file-alt"></i>  Pharmacy bill Report</button>
+                <button class="expiry" id="expiryReportBtn"><i class="fas fa-file-alt"></i>  Expiry Medicine Report</button>
+            </div>
+
+            <div class="bill" id="billReportSection" style="display: none;">
+                <div class="bill-report row">
+                    <div class="col">
+                        <h1>Pharmacy bill Report</h1>
+                        <div>
+                            <form id="billReportForm" method="post" action="{% url 'pharmacybillreport_ajax' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <div class="form-row-main">
+                                        <div class="form-select-date " >
+                                            <div class="form-select-tag">
+                                                <div class="form-item">
+                                                    <label for="time-duration">Time Duration :</label>
+                                                    <select name="time-duration" id="time-duration" class="form-select">
+                                                        <option value="" selected>Select Time Duration</option>
+                                                        <option value="today">Today</option>
+                                                        <option value="this-week">This Week</option>
+                                                        <option value="last-week">Last week</option>
+                                                        <option value="this-month">This month</option>
+                                                        <option value="last-3-month">Last 3 months</option>
+                                                        <option value="last-6-month">Last 6 months</option>
+                                                        <option value="last-12-month">Last 12 months</option>
+                                                        <option value="this-year">This year</option>
+                                                        <option value="last-year">Last year</option>
+                                                        <option value="period">Period</option>
+                                                    </select>
+
+                                                </div>
+                                                <div class="form-item">
+                                                    <label for="collected_by">Collected by :</label>
+                                                    <select name="collected_by" class="form-select">
+                                                        <option value="" selected>Select</option>
+                                                        {% for role in collected_by_list %}
+                                                            <option value="{{ role }}" {% if selected_collector == role %}selected{% endif %}>{{ role }}</option>
+                                                        {% endfor %}
+                                                    </select>
+
+                                                </div>
+                                                <div class="form-item">
+                                                    <label for="doctor">Doctor :</label>
+                                                    <select id="doctor-select" name="doctor" class="form-select">
+                                                        <option value="" selected>Select</option>
+                                                        {% for staff in staff %}
+                                                            <option value="{{ staff.id }}">{{ staff.first_name }} {{ staff.last_name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+
+                                                <div class="form-item ">
+                                                    <label for="gender">Gender :</label>
+                                                    <select name="gender" id="gender" class="form-select">
+                                                        <option value="" selected>Select Gender</option>
+                                                        <option value="male">Male</option>
+                                                        <option value="female">Female</option>
+                                                        <option value="other">Other</option>
+                                                    </select>
+                                                </div>
+                                                <!-- From Age -->
+                                                <div class="form-item ">
+                                                    <label class="form-label">From Age :</label>
+                                                    <input type="number" name="from_age" class="form-control" value="{{ from_age }}">
+                                                </div>
+
+                                                <!-- To Age -->
+                                                <div class="form-item ">
+                                                    <label class="form-label">To Age :</label>
+                                                    <input type="number" name="to_age" class="form-control" value="{{ to_age }}">
+                                                </div>
+
+                                                <!-- Payment Mode -->
+                                                <div class="form-item ">
+                                                    <label for="payment_mode" class="form-label">Payment Mode :</label>
+                                                    <select name="payment_mode" id="payment_mode" class="form-select">
+                                                        <option value="" selected>Select Payment mode</option>
+                                                        <option value="Cash">Cash</option>
+                                                        <option value="Cheque">Cheque</option>
+                                                        <option value="Bank Transfers">Bank Transfer</option>
+                                                        <option value="UPI">UPI</option>
+                                                        <option value="Others">Others</option>
+                                                    </select>
+                                                </div>
+                                                <!-- period -->
+                                                <div id="bill-daterange" class="form-row-main hidden">
+                                                    <div class="form-item">
+                                                        <label for="bill-start-date">Date from :</label>
+                                                        <input type="date" id="bill-start-date" name="start-date" class="form-control">
+                                                    </div>
+                                                    <div class="form-item">
+                                                        <label for="bill-end-date">Date to :</label>
+                                                        <input type="date" id="bill-end-date" name="end-date" class="form-control">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-end mt-3 mb-4">
+                                                <button class="btn btn-success" type="submit" style="background-color: #035122;">
+                                                    <i class="fas fa-search me-2"></i> Search
+                                                </button>
+                                            </div> 
+                                        </div> 
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    <!-- Search and Export Controls -->
+                    <div class="d-flex flex-wrap justify-content-between align-items-center bg-light p-2 rounded mb-3" style="border: 1px solid #ddd;">
+                        <!-- Search box -->
+                        <div class="flex-grow-1 w-20 w-md-auto mb-2 mb-md-0">
+                            <input type="text" id="bill-source-search" placeholder="Search..." class="form-control form-control-sm shadow-sm w-100">
+                        </div>
+
+
+                    <!-- Export & Pagination Controls -->
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="rowsPerPage" class="form-select form-select-sm">
+                            <option value="10">10</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                        <button id="download-print" class="btn btn-outline-secondary btn-sm" title="Print">
+                            <i class="fa fa-print"></i>
+                        </button>
+                        <button id="download-pdf" class="btn btn-outline-secondary btn-sm" title="Export as PDF">
+                            <i class="fa fa-file-pdf"></i>
+                        </button>
+                        <button id="download-excel" class="btn btn-outline-secondary btn-sm" title="Export as Excel">
+                            <i class="fa fa-file-excel"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Pharmacy bill Table -->
+                <div class="box">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover" id="pharmacybillReportTable">
+                            <thead>
+                                <tr>
+                                    <th>Bill No. <i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(0, this)"></i></th>
+                                    <th>Date<i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(1, this)"></i></th>
+                                    <th>Patient Name<i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(2, this)"></i></th>
+                                    <th>Gender <i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(3, this)"></i></th>
+                                    <th>Age <i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(4, this)"></i></th>
+                                    <th>Prescription No.<i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(5, this)"></i></th>
+                                    <th>Doctor Name<i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(6, this)"></i></th>
+                                    <th>Collected by<i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(7, this)"></i></th>
+                                    <th>Net Amount(₹) <i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(8, this)"></i></th>
+                                    <th>
+                                        <span class="th-label-with-icon">
+                                            Paid Amount (₹) <i class="fa fa-caret-down" onclick="sortpharmacybill(9, this)"></i>
+                                        </span>
+                                    </th>
+                                    <th>
+                                        <span class="th-label-with-icon">
+                                            Refund Amount (₹) <i class="fa fa-caret-down" onclick="sortpharmacybill(10, this)"></i>
+                                        </span>
+                                    </th>
+                                    <th>Balance Amount(₹) <i class="fa fa-caret-down" style="color: white; font-size: 18px;" onclick="sortpharmacybill(11, this)"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="billReportTableBody">
+                                <tr>
+                                    <td colspan="12" class="text-center text-muted">Please apply filters and click Search to view records.</td>
+                                </tr>
+                                
+                            </tbody>
+                            <tfoot id="pharmacyBillFooter" style="display: none;">
+                                <tr>
+                                    <td colspan="8" class="text-end fw-bold">Total:</td>
+                                    <td id="totalNetAmount" class="fw-bold">Rs 0.00</td>
+                                    <td id="totalPaidAmount" class="fw-bold">Rs 0.00</td>
+                                    <td id="totalRefundAmount" class="fw-bold">Rs 0.00</td>
+                                    <td id="totalBalanceAmount" class="fw-bold">Rs 0.00</td>
+
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+                <!-- Pagination -->
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; padding-right: 30px; width: 100%;">
+                    <div style="margin-right: 10px;padding-left: 20px; line-height: 35px;" id="billreportPageCount">Page 1 of 1</div>
+                        <div class="pagination" style="border: none; gap: 2px; display: flex; align-items: center;">
+                            <button style="background-color: white; border: none; color: rgb(142, 140, 140); font-size: 18px;" id="billreportprev" onclick="billreportchangePage('prev')">
+                                <i class="bi bi-caret-left-fill"></i>
+                            </button>
+                            <button class="current-page" id="billreportcurrentPage" style="background-color: rgb(142, 140, 140); color: white; border: none; border-radius: 3px; padding-left: 10px; padding-right: 10px; height: 35px;">1</button>
+                            <button style="background-color: white; border: none; color: rgb(142, 140, 140); font-size: 18px;" id="billreportnext" onclick="billreportchangePage('next')">
+                                <i class="bi bi-caret-right-fill"></i>
+                            </button>
+                        </div>
+                    </div>      
+                </div>
+            </div>
+
+            <!-- Expiry medicine report -->
+            <div class="bill" id="expiryReportSection" style="display: none;">
+                <div class="bill-report row">
+                    <div class="col">
+                        <h1>Expiry Medicine Report</h1>
+                        <form id="expiryReportForm" method="post" action="{% url 'expiryreport_ajax' %}">
+                            {% csrf_token %}
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Time Duration</label>
+                                    <select name="time-duration" id="expiry-time-duration" class="form-select">
+                                    <option value="" selected>Select Time Duration</option>
+                                    <option value="this-month">This Month</option>
+                                    <option value="last-month">Last Month</option>
+                                    <option value="last-3-month">Last 3 Months</option>
+                                    <option value="last-6-month">Last 6 Months</option>
+                                    <option value="this-year">This Year</option>
+                                    <option value="last-year">Last Year</option>
+                                    <option value="next-month">Next Month</option>
+                                    <option value="next-3-month">Next 3 Months</option>
+                                    <option value="next-6-month">Next 6 Months</option>
+                                    <option value="period">Period</option>
+                                    </select>
+                                </div>
+
+                                <!-- Dropdowns -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Supplier</label>
+                                    <select name="supplier" class="form-select select2">
+                                        <option value="" selected>Select Supplier</option>
+                                        {% for s in supplier_list %}
+                                        <option value="{{ s.supplier_name }}">{{ s.supplier_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Category</label>
+                                    <select name="category" class="form-select select2">
+                                        <option value="" selected>Select Category</option>
+                                        {% for cat in category_list %}
+                                        <option value="{{ cat.medicine_category }}">{{ cat.medicine_category }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+
+                                <div class="col-12 d-flex gap-3 mt-2 hidden" id="expiry-daterange">
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="start-date" id="expiry-start-date" class="form-control">
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="end-date" id="expiry-end-date" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3 mb-4">
+                                <button class="btn btn-success" type="submit"><i class="fas fa-search me-1"></i>Search</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            
+                <!-- Search and Export Controls -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center bg-light p-2 rounded mb-3" style="border: 1px solid #ddd;">
+                    <div class="flex-grow-1 w-20 w-md-auto mb-2 mb-md-0">
+                        <input type="text" id="expiry-source-search" placeholder="Search..." class="form-control form-control-sm shadow-sm w-100">
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="expiry-rowsPerPage" class="form-select form-select-sm">
+                            <option value="10">10</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                        </select>
+                        <button id="expiry-download-print" class="btn btn-outline-secondary btn-sm" title="Print">
+                            <i class="fa fa-print"></i>
+                        </button>
+                        <button id="expiry-download-pdf" class="btn btn-outline-secondary btn-sm" title="Export as PDF">
+                            <i class="fa fa-file-pdf"></i>
+                        </button>
+                        <button id="expiry-download-excel" class="btn btn-outline-secondary btn-sm" title="Export as Excel">
+                            <i class="fa fa-file-excel"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expiry Table -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover" id="expirymedicineReportTable">
+                        <thead>
+                            <tr>
+                                <th>Medicine Name <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(0, this)"></i></th>
+                                <th>Batch No. <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(1, this)"></i></th>
+                                <th>Company Name <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(2, this)"></i></th>
+                                <th>Medicine Category <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(3, this)"></i></th>
+                                <th>Medicine Group <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(4, this)"></i></th>
+                                <th>Supplier <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(5, this)"></i></th>
+                                <th>Expire Date <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(6, this)"></i></th>
+                                <th>Qty <i class="fa fa-caret-down" style="color: white;" onclick="sortexpirymedicine(7, this)"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="expirymedicineTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">Please apply filters and click Search to view records.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; padding-right: 30px; width: 100%;">
+                    <div style="margin-right: 10px;padding-left: 20px; line-height: 35px;" id="expirymedicinePageCount">Page 1 of 1</div>
+                    <div class="pagination" style="border: none; gap: 2px; display: flex; align-items: center;">
+                        <button style="background-color: white; border: none; color: rgb(142, 140, 140); font-size: 18px;" id="expirymedicineprev" onclick="expirymedicinechangePage('prev')">
+                            <i class="bi bi-caret-left-fill"></i>
+                        </button>
+                        <button class="current-page" id="expirymedicinecurrentPage" style="background-color: rgb(142, 140, 140); color: white; border: none; border-radius: 3px; padding-left: 10px; padding-right: 10px; height: 35px;">1</button>
+                        <button style="background-color: white; border: none; color: rgb(142, 140, 140); font-size: 18px;" id="expirymedicinenext" onclick="expirymedicinechangePage('next')">
+                            <i class="bi bi-caret-right-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+                                            
+
+
+<!-- pharmacy bill  -->
+ 
+<!-- <script>
+    // Initially hide expiry section
+    document.getElementById('expiryReportSection').style.display = 'none';
+
+    // Toggle pharmacy bill section
+    document.getElementById('billReportBtn').addEventListener('click', function () {
+        var billSection = document.getElementById('billReportSection');
+        var expirySection = document.getElementById('expiryReportSection');
+
+        // Toggle bill section
+        if (billSection.style.display === 'none' || billSection.style.display === '') {
+            billSection.style.display = 'block';
+            expirySection.style.display = 'none';
+        } else {
+            billSection.style.display = 'none';
+        }
+    });
+
+
+
+    // Toggle expiry medicine section
+    document.getElementById('expiryReportBtn').addEventListener('click', function () {
+        var expirySection = document.getElementById('expiryReportSection');
+        var billSection = document.getElementById('billReportSection');
+
+        if (expirySection.style.display === 'none' || expirySection.style.display === '') {
+            expirySection.style.display = 'block';
+            billSection.style.display = 'none';
+        } else {
+            expirySection.style.display = 'none';
+        }
+    });
+</script> -->
+
+<script>
+    function setActiveReportButton(activeId) {
+        document.querySelector('.bill').classList.remove('active-btn');
+        document.querySelector('.expiry').classList.remove('active-btn');
+        document.getElementById(activeId).classList.add('active-btn');
+    }
+
+    document.getElementById('billReportBtn').addEventListener('click', function () {
+        document.getElementById('billReportSection').style.display = 'block';
+        document.getElementById('expiryReportSection').style.display = 'none';
+        setActiveReportButton('billReportBtn');
+    });
+
+    document.getElementById('expiryReportBtn').addEventListener('click', function () {
+        document.getElementById('expiryReportSection').style.display = 'block';
+        document.getElementById('billReportSection').style.display = 'none';
+        setActiveReportButton('expiryReportBtn');
+    });
+</script>
+
+<script>
+    //sorting
+    let pharmacyBillSortDirection = {};
+
+    function sortpharmacybill(colIndex, iconSpan) {
+        const table = document.getElementById("pharmacybillReportTable");
+        const tbody = table.querySelector("tbody");
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+
+        pharmacyBillSortDirection[colIndex] = !pharmacyBillSortDirection[colIndex];
+        const ascending = pharmacyBillSortDirection[colIndex];
+
+        const sortedRows = rows.sort((a, b) => {
+            const aText = a.cells[colIndex]?.textContent.trim() || "";
+            const bText = b.cells[colIndex]?.textContent.trim() || "";
+
+            // ✅ If column is Date (assumed index 1), use real Date objects
+            if (colIndex === 1) {
+                const aDate = new Date(aText);
+                const bDate = new Date(bText);
+                return ascending ? aDate - bDate : bDate - aDate;
+            }
+
+            const aNum = parseFloat(aText.replace(/[^\d.-]/g, ""));
+            const bNum = parseFloat(bText.replace(/[^\d.-]/g, ""));
+
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return ascending ? aNum - bNum : bNum - aNum;
+            }
+
+            return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+        });
+
+        sortedRows.forEach(row => tbody.appendChild(row));
+
+        // Reset all icons
+        document.querySelectorAll("th i.fa").forEach(i => {
+            i.classList.remove("fa-caret-up", "fa-caret-down");
+            i.classList.add("fa-caret-down");
+        });
+
+        iconSpan.classList.remove("fa-caret-down", "fa-caret-up");
+        iconSpan.classList.add(ascending ? "fa-caret-up" : "fa-caret-down");
+
+        billreportInitPagination();
+    }
+</script>
+
+<script>  
+    // Pagination
+    let billreportCurrentPage = 1;
+    let billreportRowsPerPage = 10;
+
+    function getVisibleBillRows() {
+        return Array.from(document.querySelectorAll("#billReportTableBody tr:not(.d-none)"));
+    }
+
+    function billreportPaginate() {
+        const rows = getVisibleBillRows();
+        const totalPages = Math.ceil(rows.length / billreportRowsPerPage);
+        billreportCurrentPage = Math.max(1, Math.min(billreportCurrentPage, totalPages));
+        const start = (billreportCurrentPage - 1) * billreportRowsPerPage;
+        const end = billreportCurrentPage * billreportRowsPerPage;
+
+        rows.forEach((row, index) => {
+            row.style.display = (index >= start && index < end) ? "table-row" : "none";
+        });
+
+        document.getElementById("billreportPageCount").textContent = `Page ${billreportCurrentPage} of ${totalPages || 1}`;
+        document.getElementById("billreportcurrentPage").textContent = billreportCurrentPage;
+        document.getElementById("billreportprev").disabled = billreportCurrentPage === 1;
+        document.getElementById("billreportnext").disabled = billreportCurrentPage === totalPages;
+
+        calculatePharmacyBillTotals();
+    }
+    function billreportchangePage(direction) {
+        const totalPages = Math.ceil(getVisibleBillRows().length / billreportRowsPerPage);
+        if (direction === 'prev' && billreportCurrentPage > 1) billreportCurrentPage--;
+        if (direction === 'next' && billreportCurrentPage < totalPages) billreportCurrentPage++;
+        billreportPaginate();
+    }
+
+    document.getElementById("rowsPerPage").addEventListener("change", function () {
+        const value = this.value;
+        billreportRowsPerPage = value === "all" ? getVisibleBillRows().length : parseInt(value);
+        billreportCurrentPage = 1;
+        billreportPaginate();
+    });
+
+    function billreportInitPagination() {
+        billreportCurrentPage = 1;
+        billreportRowsPerPage = parseInt(document.getElementById("rowsPerPage").value) || 10;
+        billreportPaginate();
+    }
+</script>
+
+<script>
+    // Unified AJAX filtering + pagination
+    document.getElementById("billReportForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": formData.get("csrfmiddlewaretoken"),
+            },
+            body: formData,
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById("billReportTableBody").innerHTML = data.html;
+                billreportInitPagination();
+            } else {
+                alert("Something went wrong.");
+            }
+        })
+        .catch(error => {
+            console.error("AJAX Error:", error);
+            alert("Error occurred while filtering data.");
+        });
+    });
+
+    //source-search
+    document.getElementById("bill-source-search").addEventListener("input", function () {
+    const searchTerm = this.value.trim().toLowerCase();
+    const rows = document.querySelectorAll("#billReportTableBody tr");
+
+    let foundMatch = false;
+
+    // Remove existing "No records" row if present
+    const noRecordRow = document.querySelector("#no-record-row");
+    if (noRecordRow) noRecordRow.remove();
+
+    rows.forEach(row => {
+        const match = row.textContent.toLowerCase().includes(searchTerm);
+        row.style.display = match ? "" : "none";
+        if (match) foundMatch = true;
+    });
+
+    // If no matches, insert a special row (without deleting original data)
+    if (!foundMatch) {
+        const tbody = document.getElementById("billReportTableBody");
+        const noDataRow = document.createElement("tr");
+        noDataRow.id = "no-record-row";
+        noDataRow.innerHTML = `<td colspan="12" class="text-center text-muted">No matching records found.</td>`;
+        tbody.appendChild(noDataRow);
+    }
+
+    // ✅ Recalculate totals based on visible rows
+    calculatePharmacyBillTotals();
+});
+
+</script>
+
+<script>
+    // Totals calculation
+    function calculatePharmacyBillTotals() {
+    const rows = document.querySelectorAll("#billReportTableBody tr");
+
+    // Filter only visible rows (not display: none)
+    const visibleRows = Array.from(rows).filter(
+        row => row.style.display !== "none"
+    );
+
+    if (
+        !visibleRows.length ||
+        visibleRows[0].textContent.includes("Please apply filters") ||
+        visibleRows[0].textContent.includes("No matching records")
+    ) {
+        document.getElementById("pharmacyBillFooter").style.display = "none";
+        return;
+    }
+
+    let totalNet = 0, totalPaid = 0, totalRefund = 0, totalBalance = 0;
+
+    visibleRows.forEach(row => {
+        totalNet += parseFloat(row.cells[8]?.textContent.replace(/[^\d.-]/g, '')) || 0;
+        totalPaid += parseFloat(row.cells[9]?.textContent.replace(/[^\d.-]/g, '')) || 0;
+        totalRefund += parseFloat(row.cells[10]?.textContent.replace(/[^\d.-]/g, '')) || 0;
+        totalBalance += parseFloat(row.cells[11]?.textContent.replace(/[^\d.-]/g, '')) || 0;
+    });
+
+    document.getElementById("pharmacyBillFooter").style.display = "table-footer-group";
+    document.getElementById("totalNetAmount").textContent = `₹${totalNet.toFixed(2)}`;
+    document.getElementById("totalPaidAmount").textContent = `₹${totalPaid.toFixed(2)}`;
+    document.getElementById("totalRefundAmount").textContent = `₹${totalRefund.toFixed(2)}`;
+    document.getElementById("totalBalanceAmount").textContent = `₹${totalBalance.toFixed(2)}`;
+}
+
+</script>
+
+<script>
+    // Export to PDF, Excel, Print
+    document.getElementById("download-pdf").addEventListener("click", function () {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("l", "pt", "a4");
+
+    // Clone the table to safely manipulate
+    const originalTable = document.querySelector("#pharmacybillReportTable");
+    const clonedTable = originalTable.cloneNode(true);
+
+    // Replace ₹ with Rs in the cloned table
+    clonedTable.querySelectorAll("td, th").forEach(cell => {
+        cell.innerText = cell.innerText.replace(/₹/g, "Rs ");
+    });
+
+    // Create a temporary hidden container to render the updated table
+    const tempContainer = document.createElement("div");
+    tempContainer.style.display = "none";
+    tempContainer.appendChild(clonedTable);
+    document.body.appendChild(tempContainer);
+
+    // Export using jsPDF autotable
+    doc.autoTable({
+        html: clonedTable,
+        startY: 20,
+        styles: {
+            fontSize: 8,
+            cellPadding: 3,
+            overflow: 'linebreak',
+            halign: 'center', // aligns text in center
+            valign: 'middle'
+        },
+        columnStyles: {
+            0: { cellWidth: 60 },   // Bill No.
+            1: { cellWidth: 60 },   // Date
+            2: { cellWidth: 80 },   // Patient Name
+            3: { cellWidth: 40 },   // Gender
+            4: { cellWidth: 40 },   // Age
+            5: { cellWidth: 70 },   // Prescription No
+            6: { cellWidth: 80 },   // Doctor Name
+            7: { cellWidth: 70 },   // Collected by
+            8: { cellWidth: 67 },   // Net Amount
+            9: { cellWidth: 65 },   // Paid Amount
+            10: { cellWidth: 65 },  // Refund Amount
+            11: { cellWidth: 65 }   // Balance Amount
+        },
+        didDrawCell: function (data) {
+            // Optional: Remove dropdown arrows or other dynamic content if present
+            const cell = data.cell.raw;
+            if (cell && cell.querySelector(".fa-sort")) {
+                cell.querySelector(".fa-sort").remove();
+            }
+        }
+    });
+
+
+    // Clean up temporary DOM
+    document.body.removeChild(tempContainer);
+
+    // Save file
+    doc.save("pharmacy_bill_report.pdf");
+});
+
+
+
+    document.getElementById("download-excel").addEventListener("click", function () {
+        const table = document.getElementById("pharmacybillReportTable");
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Sheet1" });
+
+        // Auto-width for all columns
+        const ws = wb.Sheets["Sheet1"];
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        const colWidths = [];
+
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            let maxLength = 10;
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+                const cell = ws[XLSX.utils.encode_cell({ c: C, r: R })];
+                if (cell && cell.v != null) {
+                    const value = cell.v.toString();
+                    maxLength = Math.max(maxLength, value.length);
+                }
+            }
+            colWidths.push({ wch: maxLength + 2 }); // Add padding
+        }
+
+        ws['!cols'] = colWidths;
+
+        XLSX.writeFile(wb, "pharmacy_bill_report.xlsx");
+    });
+
+
+
+
+    document.getElementById("download-print").addEventListener("click", function () {
+        const printContents = document.getElementById("pharmacybillReportTable").outerHTML;
+        const printWindow = window.open('', '', 'height=600,width=900');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Print Report</title>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse !important;
+                    }
+                    th, td {
+                        border: 1px solid black !important;
+                        padding: 8px !important;
+                        text-align: center;
+                        font-size: 12px;
+                    }
+                    thead {
+                        background-color: #f2f2f2;
+                    }
+                </style>
+            </head>
+            <body>
+                <h4 style="text-align: center;">Pharmacy Bill Report</h4>
+                ${printContents}
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+    }); 
+
+</script>
+
+
+
+
+<script>
+    //date range
+  document.addEventListener("DOMContentLoaded", function () {
+    const billSelect = document.getElementById("time-duration");
+    const billRange = document.getElementById("bill-daterange");
+
+    function toggleBillRange() {
+      if (billSelect.value === "period") {
+        billRange.classList.remove("hidden");
+      } else {
+        billRange.classList.add("hidden");
+        document.getElementById("bill-start-date").value = "";
+        document.getElementById("bill-end-date").value = "";
+      }
+    }
+
+    toggleBillRange(); // Run on page load
+    billSelect.addEventListener("change", toggleBillRange); // Run on change
+  });
+</script>
+
+
+
+
+
+
+
+<!-- Expiry medicine -->
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const duration = document.getElementById("expiry-time-duration");
+        const rangeDiv = document.getElementById("expiry-daterange");
+        const startDate = document.getElementById("expiry-start-date");
+        const endDate = document.getElementById("expiry-end-date");
+        const body = document.getElementById("expirymedicineTableBody");
+
+        function toggleDateRange() {
+            if (duration.value === "period") {
+            rangeDiv.classList.remove("hidden");
+            } else {
+            rangeDiv.classList.add("hidden");
+            startDate.value = "";
+            endDate.value = "";
+            }
+        }
+
+        // Trigger on page load and change
+        toggleDateRange();
+        duration.addEventListener("change", toggleDateRange);
+    });
+    
+    // Submit form via AJAX
+    document.getElementById("expiryReportForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+
+        const selectedDuration = formData.get("time-duration");
+        const start = formData.get("start-date");
+        const end = formData.get("end-date");
+
+        if (selectedDuration === "period" && (!start || !end)) {
+        alert("Please select both start and end dates.");
+        return;
+        }
+
+        fetch(this.action, {
+    method: "POST",
+    headers: { "X-CSRFToken": formData.get("csrfmiddlewaretoken") },
+    body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+    const body = document.getElementById("expirymedicineTableBody");
+
+    if (data.success) {
+        body.innerHTML = data.html;
+        expirymedicineInitPagination(); // optional: if you use pagination
+    } else {
+        body.innerHTML = `<tr><td colspan="8" class="text-center text-muted">${data.error || "No records found."}</td></tr>`;
+    }
+    })
+    .catch(err => {
+    console.error("Fetch error:", err);
+    document.getElementById("expirymedicineTableBody").innerHTML =
+        `<tr><td colspan="8" class="text-center text-danger">Error occurred while fetching data.</td></tr>`;
+    });
+
+  // Search filter
+  document.getElementById("expiry-source-search").addEventListener("input", function () {
+    const search = this.value.trim().toLowerCase();
+    const rows = document.querySelectorAll("#expirymedicineTableBody tr");
+
+    let foundMatch = false;
+
+    // Remove existing "No matching" row if it exists
+    const noMatchRow = document.querySelector("#expiry-no-record-row");
+    if (noMatchRow) noMatchRow.remove();
+
+    rows.forEach(row => {
+        const match = row.textContent.toLowerCase().includes(search);
+        row.style.display = match ? "" : "none";
+        if (match) foundMatch = true;
+    });
+
+    // If nothing found, insert "no data" row
+    if (!foundMatch) {
+        const tbody = document.getElementById("expirymedicineTableBody");
+        const row = document.createElement("tr");
+        row.id = "expiry-no-record-row";
+        row.innerHTML = `<td colspan="12" class="text-center text-muted">No matching records found.</td>`;
+        tbody.appendChild(row);
+    }
+
+    expirymedicineInitPagination(); // Re-init pagination if needed
+});
+
+
+  // Pagination
+  let expirymedicineCurrentPage = 1;
+  let expirymedicineRowsPerPage = 10;
+
+  function getVisibleExpiryRows() {
+    return Array.from(document.querySelectorAll("#expirymedicineTableBody tr")).filter(row => row.style.display !== "none");
+  }
+
+  function expirymedicinePaginate() {
+    const rows = getVisibleExpiryRows();
+    const totalPages = Math.ceil(rows.length / expirymedicineRowsPerPage);
+    expirymedicineCurrentPage = Math.max(1, Math.min(expirymedicineCurrentPage, totalPages));
+    const start = (expirymedicineCurrentPage - 1) * expirymedicineRowsPerPage;
+    const end = expirymedicineCurrentPage * expirymedicineRowsPerPage;
+
+    rows.forEach((row, i) => row.style.display = (i >= start && i < end) ? "" : "none");
+
+    document.getElementById("expirymedicinePageCount").textContent = `Page ${expirymedicineCurrentPage} of ${totalPages || 1}`;
+    document.getElementById("expirymedicinecurrentPage").textContent = expirymedicineCurrentPage;
+    document.getElementById("expirymedicineprev").disabled = expirymedicineCurrentPage === 1;
+    document.getElementById("expirymedicinenext").disabled = expirymedicineCurrentPage === totalPages;
+  }
+
+  function expirymedicineInitPagination() {
+    expirymedicineCurrentPage = 1;
+    const rowsPerPage = document.getElementById("expiry-rowsPerPage").value;
+    expirymedicineRowsPerPage = rowsPerPage === "all" ? getVisibleExpiryRows().length : parseInt(rowsPerPage);
+    expirymedicinePaginate();
+  }
+
+  document.getElementById("expiry-rowsPerPage").addEventListener("change", () => {
+    expirymedicineInitPagination();
+  });
+
+  window.expirymedicinechangePage = function (dir) {
+    const total = Math.ceil(getVisibleExpiryRows().length / expirymedicineRowsPerPage);
+    if (dir === 'prev' && expirymedicineCurrentPage > 1) expirymedicineCurrentPage--;
+    if (dir === 'next' && expirymedicineCurrentPage < total) expirymedicineCurrentPage++;
+    expirymedicinePaginate();
+  }
+  let expirymedicineSortDirection = {};
+
+    window.sortexpirymedicine = function (colIndex, icon) {
+    const table = document.getElementById("expirymedicineReportTable");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    // Toggle sort direction
+    expirymedicineSortDirection[colIndex] = !expirymedicineSortDirection[colIndex];
+    const ascending = expirymedicineSortDirection[colIndex];
+
+    // Sort rows
+    const sortedRows = rows.sort((a, b) => {
+        const aText = a.cells[colIndex]?.textContent.trim() || "";
+        const bText = b.cells[colIndex]?.textContent.trim() || "";
+
+        const aDate = Date.parse(aText);
+        const bDate = Date.parse(bText);
+        if (!isNaN(aDate) && !isNaN(bDate)) return ascending ? aDate - bDate : bDate - aDate;
+
+        const aNum = parseFloat(aText.replace(/[^\d.-]/g, ""));
+        const bNum = parseFloat(bText.replace(/[^\d.-]/g, ""));
+        if (!isNaN(aNum) && !isNaN(bNum)) return ascending ? aNum - bNum : bNum - aNum;
+
+        return ascending ? aText.localeCompare(bText) : bText.localeCompare(aText);
+    });
+
+  // Re-append sorted rows
+  sortedRows.forEach(row => tbody.appendChild(row));
+
+  // Update arrow icon
+  icon.classList.remove("fa-caret-up", "fa-caret-down");
+    icon.classList.add(ascending ? "fa-caret-up" : "fa-caret-down");
+
+  icon.classList.add(ascending ? "fa-caret-up" : "fa-caret-down");
+
+  expirymedicineInitPagination(); // Re-apply pagination
+};
+
+
+  // Export
+  const { jsPDF } = window.jspdf;
+
+  document.getElementById("expiry-download-pdf").addEventListener("click", () => {
+    const doc = new jsPDF();
+    doc.autoTable({ html: '#expirymedicineReportTable' });
+    doc.save("expiry_medicine_report.pdf");
+  });
+
+
+
+document.getElementById("expiry-download-excel").addEventListener("click", () => {
+            const ws = XLSX.utils.table_to_sheet(document.getElementById("expirymedicineReportTable"));
+            // Auto-adjust column widths based on content
+            const colWidths = [];
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                let maxWidth = 15; // default min width
+                for (let R = range.s.r; R <= range.e.r; ++R) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                    const cell = ws[cellAddress];
+                    if (cell && cell.v != null) {
+                        const valueLength = cell.v.toString().length;
+                        if (valueLength > maxWidth) {
+                            maxWidth = valueLength;
+                        }
+                    }
+                }
+                colWidths.push({ wch: maxWidth + 5 }); // Add padding
+            }
+            ws['!cols'] = colWidths;
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Expirymedicine");
+            XLSX.writeFile(wb, "expiry_medicine_report.xlsx");
+
+        });
+
+
+  document.getElementById("expiry-download-print").addEventListener("click", () => {
+    const content = document.getElementById("expirymedicineReportTable").outerHTML;
+
+    const win = window.open('', '', 'height=700,width=900');
+    win.document.write(`
+        <html>
+        <head>
+        <title>Print</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+        <style>
+            table, th, td {
+            border: 1px solid black !important;
+            border-collapse: collapse !important;
+            }
+            th, td {
+            padding: 8px !important;
+            text-align: center !important;
+            }
+        </style>
+        </head>
+        <body>
+        ${content}
+        </body>
+        </html>
+    `);
+
+    win.document.close();
+    win.focus();
+    win.print();
+    });
+
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<script>
+    //daterange
+  document.addEventListener("DOMContentLoaded", function () {
+    const expirySelect = document.getElementById("expiry-time-duration");
+    const expiryRange = document.getElementById("expiry-daterange");
+
+    function toggleExpiryRange() {
+      if (expirySelect.value === "period") {
+        expiryRange.classList.remove("hidden");
+      } else {
+        expiryRange.classList.add("hidden");
+        document.getElementById("expiry-start-date").value = "";
+        document.getElementById("expiry-end-date").value = "";
+      }
+    }
+
+    toggleExpiryRange(); // Run on page load
+    expirySelect.addEventListener("change", toggleExpiryRange); // Run on change
+  });
+</script>
+<script>
+    //select2
+    $(document).ready(function() {
+        $('.select2').select2({
+            width: '100%',
+            placeholder: function() {
+                return $(this).data('placeholder'); // Gets from data-placeholder
+            },
+        });
+    });
+</script>
+
+</body>
+
+{% endblock %}

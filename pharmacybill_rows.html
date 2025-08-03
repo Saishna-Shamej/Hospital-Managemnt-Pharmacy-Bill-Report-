@@ -1,0 +1,20 @@
+{% for bill in bills %}
+<tr>
+    <td>{{ bill.bill_no }}</td>
+    <td>{{ bill.date_time|date:"Y-m-d" }}</td>
+    <td>{{ bill.patient.name }}</td>
+    <td>{{ bill.patient.gender }}</td>
+    <td>{{ bill.patient.age }}</td>
+    <td>{{ bill.prescription_number|default:"" }}</td>
+    <td>{{ bill.doctor.first_name }} {{ bill.doctor.last_name }}</td>
+    <td>{{ bill.collected_by }}</td>
+    <td>{{ bill.net_amount }}</td>
+    <td>{{ bill.payment_amount }}</td>
+    <td>{{ bill.refund_amount }}</td>
+    <td>{{ bill.balance_amount }}</td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="12" class="text-center text-muted">No records found for the selected filters.</td>
+</tr>
+{% endfor %}
